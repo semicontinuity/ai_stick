@@ -19,13 +19,14 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, "invoke <coeff file> <image file>")
 		_, _ = fmt.Fprintln(os.Stderr, "make-image-message")
 		_, _ = fmt.Fprintln(os.Stderr, "make-coefficients-message")
-		_, _ = fmt.Fprintln(os.Stderr, "sha256 <N>\tCompute SHA-256 for chunks of N bytes")
-		_, _ = fmt.Fprintln(os.Stderr, "i2b\tConvert binary file of integers to binary file of bytes")
-		_, _ = fmt.Fprintln(os.Stderr, "agg <N>\tAggregate sequences of N bytes")
-		_, _ = fmt.Fprintln(os.Stderr, "mul <K>\tMultiply every byte by K")
-		_, _ = fmt.Fprintln(os.Stderr, "unpack5\tUnpack 128-byte sections of 196 5-bit values")
-		_, _ = fmt.Fprintln(os.Stderr, "reorder3\tReorder 3-dimensional bytes array, arguments: [d1] [d2] [d3] [stride1] [stride2] [stride3]")
-		_, _ = fmt.Fprintln(os.Stderr, "extract\tExtract column, arguments: [stride] [skip] [count]")
+		_, _ = fmt.Fprintln(os.Stderr, "sha256 <N>\t\tCompute SHA-256 for chunks of N bytes")
+		_, _ = fmt.Fprintln(os.Stderr, "i2b\t\t\tConvert binary file of integers to binary file of bytes")
+		_, _ = fmt.Fprintln(os.Stderr, "agg <N>\t\t\tAggregate sequences of N bytes")
+		_, _ = fmt.Fprintln(os.Stderr, "mul <K>\t\t\tMultiply every byte by K")
+		_, _ = fmt.Fprintln(os.Stderr, "unpack5\t\t\tUnpack 128-byte sections of 196 5-bit values")
+		_, _ = fmt.Fprintln(os.Stderr, "reorder3\t\tReorder 3-dimensional bytes array, arguments: [d1] [d2] [d3] [stride1] [stride2] [stride3]")
+		_, _ = fmt.Fprintln(os.Stderr, "extract\t\t\tExtract column, arguments: [stride] [skip] [count]")
+		_, _ = fmt.Fprintln(os.Stderr, "compare <f1>..<fn>\tCompare n same-sized files, output bit 0 if a bit is the same in all files, 1 otherwise")
 	} else {
 		if os.Args[1] == "invoke" {
 			device, _ := OpenSgDevice("/dev/sg2")
@@ -85,9 +86,20 @@ func main() {
 			}
 			fmt.Printf("%06x  %08x %08x %08x\t%02x\t%02x\t%d\t%s\t%v\n", offset, i0, i1, i2, byteOffset, mask, diffCount, renderDiffString(diff), detail)
 		} else if os.Args[1] == "make-image-message" {
+			byteAt0x14, _ := strconv.ParseInt(os.Args[2], 16, 32)
+			byteAt0x970, _ := strconv.ParseInt(os.Args[3], 16, 32)
+			byteAt0x974, _ := strconv.ParseInt(os.Args[4], 16, 32)
+
+			args := os.Args[5:]
+			headerPayload := make([]byte, len(args))
+			for a := 0; a < len(args); a++ {
+				v, _ := strconv.ParseInt(args[a], 16, 32)
+				headerPayload[a] = byte(v)
+			}
+
 			inBuffer, _ := ioutil.ReadFile("/dev/stdin")
 			_, _ = fmt.Fprintln(os.Stderr, "Image size:", len(inBuffer))
-			outBuffer := MakeImageRequest(inBuffer)
+			outBuffer := MakeImageRequest(byte(byteAt0x14), byte(byteAt0x970), byte(byteAt0x974), inBuffer, headerPayload)
 			_, _ = fmt.Fprintln(os.Stderr, "Encoded size:", len(outBuffer))
 			fo, _ := os.Create("/dev/stdout")
 			_, _ = fo.Write(outBuffer)
